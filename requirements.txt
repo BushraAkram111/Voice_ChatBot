@@ -5,4 +5,4 @@ pyttsx3
 openai
 python-dotenv
 speechrecognition==3.10.0
-pyaudio==0.1.12
+pyaudio==24.1.2
