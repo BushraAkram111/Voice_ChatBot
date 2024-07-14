@@ -5,5 +5,4 @@ pyttsx3
 openai
 python-dotenv
 speechrecognition==3.10.0
-pyaudio==24.1.2
-pip install --upgrade pip
+PyAudio==0.2.11
