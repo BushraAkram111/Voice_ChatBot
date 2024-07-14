@@ -6,29 +6,20 @@ from langchain.schema import SystemMessage, HumanMessage, AIMessage
 import pyttsx3
 import speech_recognition as sr
 from concurrent.futures import ThreadPoolExecutor
-from PIL import Image
-import pytesseract
 
-# Install the required libraries
-# pip install streamlit pyttsx3 SpeechRecognition pillow pytesseract
+# Set page configuration
+st.set_page_config(page_title="AI VoiceBot", layout="wide")
 
-st.set_page_config(page_title="AI-ChatBot", layout="wide")
+# Sidebar for API Key
+with st.sidebar:
+    st.header("Chatbot Settings")
+    user_openai_api_key = st.text_input("Enter your OpenAI API Key (optional):", type="password", placeholder="Your API Key Here")
 
-st.title("AI-ChatBot")
+# Main Area
+st.title("AI-VoiceBot")
 
-# Initialize the ChatOpenAI model
-openai_api_key = "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"
-chat = ChatOpenAI(
-    temperature=0.5,
-    model_name="gpt-3.5-turbo",
-    openai_api_key=openai_api_key,
-    max_tokens=100
-)
-
-executor = ThreadPoolExecutor(max_workers=2)
-
-# Initialize Tesseract OCR for image processing
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Change this path to your Tesseract installation
+# Default OpenAI API Key (Set your own default key here)
+DEFAULT_OPENAI_API_KEY = "YOUR_DEFAULT_OPENAI_API_KEY"
 
 # Initialize session state variables
 if 'generated' not in st.session_state:
@@ -37,18 +28,34 @@ if 'generated' not in st.session_state:
 if 'past' not in st.session_state:
     st.session_state['past'] = []
 
-if 'search_history' not in st.session_state:
-    st.session_state['search_history'] = []
+if 'chat_history' not in st.session_state:
+    st.session_state['chat_history'] = []
 
-# Define missing functions
-def generate_response():
+executor = ThreadPoolExecutor(max_workers=2)
+
+def build_message_list():
+    zipped_messages = [SystemMessage(content="You are a helpful assistant. Answer the user's questions based on the context.")]
+    for human_msg, ai_msg in zip_longest(st.session_state['past'], st.session_state['generated']):
+        if human_msg is not None:
+            zipped_messages.append(HumanMessage(content=human_msg))
+        if ai_msg is not None:
+            zipped_messages.append(AIMessage(content=ai_msg))
+    return zipped_messages
+
+def generate_response(api_key):
     try:
+        # Initialize the ChatOpenAI model with the provided API key
+        chat = ChatOpenAI(
+            temperature=0.5,
+            model_name="gpt-3.5-turbo",
+            openai_api_key=api_key,
+            max_tokens=100
+        )
         zipped_messages = build_message_list()
         ai_response = chat(zipped_messages)
         return ai_response.content
     except Exception as e:
-        st.write(f"Error: {e}")
-        return "Error generating response"
+        return str(e)  # Return error message if any
 
 def capture_audio():
     r = sr.Recognizer()
@@ -57,93 +64,80 @@ def capture_audio():
     try:
         return r.recognize_google(audio)
     except sr.UnknownValueError:
-        st.warning("Please hold! Loading response...")
+        st.warning("Could not understand audio. Please try again.")
         return ""
     except sr.RequestError:
         st.error("API unavailable. Please check your internet connection and try again.")
         return ""
-
-def process_image_question(image):
-    try:
-        # Use Tesseract OCR to extract text from the image
-        text = pytesseract.image_to_string(Image.open(image))
-        return text
-    except Exception as e:
-        st.write(f"Error processing image: {e}")
-        return "Error processing image"
-
-def build_message_list():
-    zipped_messages = [SystemMessage(content="""...[Your initial instruction message]...""")]
-    for human_msg, ai_msg in zip_longest(st.session_state['past'], st.session_state['generated']):
-        if human_msg is not None:
-            if isinstance(human_msg, bytes):
-                zipped_messages.append(HumanMessage(content=human_msg.decode('utf-8', 'ignore')))
-            else:
-                zipped_messages.append(HumanMessage(content=human_msg))
-        if ai_msg is not None:
-            zipped_messages.append(AIMessage(content=ai_msg))
-    return zipped_messages
 
 def text_to_speech(text):
     engine = pyttsx3.init()
     engine.say(text)
     engine.runAndWait()
 
-# Sidebar section
-st.sidebar.title("Welcome To AI World")
+# Text input field for user questions
+user_input_text = st.text_input("Type your question here:")
 
-new_chat_button = st.sidebar.button("New Chat")
-
-if new_chat_button:
-    st.session_state['generated'] = []
-    st.session_state['past'] = []
-    st.session_state['search_history'] = []
-
-recommended_searches = ["History", "Science", "Technology", "AI", "Machine Learning", "Deep Learning", "NLP"]  # Customize as needed
-st.sidebar.title("Recommended Searches")
-st.sidebar.write(recommended_searches)
-
-# About Us section
-st.sidebar.title("About Us")
-st.sidebar.write("This chatbot is designed to provide answers to your queries. "
-                 "Ask questions in text, voice, or upload images for more personalized responses.")
-
-# User input section
-user_input_type = st.radio("Select input type:", ("Text", "Voice", "Picture"))
-
-if user_input_type == "Text":
-    user_input = st.text_input("Enter your question:")
-    if st.button("Ask Question"):
-        st.session_state.past.append(user_input)
-        st.session_state.search_history.append(user_input)
-        output = generate_response()
-        st.session_state.generated.append(output)
-elif user_input_type == "Voice":
-    if st.button("Ask Question (Voice)"):
-        user_input = capture_audio()
-        st.session_state.past.append(user_input)
-        st.session_state.search_history.append(user_input)
-        output = generate_response()
+# Function to handle API key selection and response generation
+def handle_question():
+    api_key = user_openai_api_key if user_openai_api_key else DEFAULT_OPENAI_API_KEY
+    output = generate_response(api_key)
+    
+    if "Error" in output:
+        if user_openai_api_key:
+            st.warning("Trying with the provided API Key.")
+            output = generate_response(user_openai_api_key)
+            if "Error" not in output:
+                st.session_state.past.append(user_input_text)
+                st.session_state.generated.append(output)
+                text_to_speech(output)
+                st.experimental_rerun()
+            else:
+                st.error(f"User's API Key also failed: {output}")
+        else:
+            st.error(f"Default API Key failed: {output}")
+    else:
+        st.session_state.past.append(user_input_text)
         st.session_state.generated.append(output)
         text_to_speech(output)
-elif user_input_type == "Picture":
-    uploaded_image = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
-    if uploaded_image is not None:
-        # Display the uploaded image
-        st.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
-        # Process image and generate response
-        user_input = process_image_question(uploaded_image)
-        st.session_state.past.append(user_input)
-        st.session_state.search_history.append(user_input)
-        output = generate_response()
-        st.session_state.generated.append(output)
+        st.experimental_rerun()
 
-# Display the conversation
+if st.button("Ask Question"):
+    if user_input_text:
+        handle_question()
+    else:
+        st.warning("Please type a question.")
+
+# Voice input button
+if st.button("Ask Question by Voice"):
+    if user_openai_api_key or DEFAULT_OPENAI_API_KEY:
+        user_input = capture_audio()
+        if user_input:
+            st.session_state.past.append(user_input)
+            api_key = user_openai_api_key if user_openai_api_key else DEFAULT_OPENAI_API_KEY
+            output = generate_response(api_key)
+            if "Error" in output:
+                if user_openai_api_key:
+                    api_key = user_openai_api_key
+                    output = generate_response(api_key)
+                    if "Error" not in output:
+                        st.session_state.generated.append(output)
+                        text_to_speech(output)
+                        st.experimental_rerun()
+                    else:
+                        st.error(f"User's API Key also failed: {output}")
+                else:
+                    st.error(f"Default API Key failed: {output}")
+            else:
+                st.session_state.generated.append(output)
+                text_to_speech(output)
+                st.experimental_rerun()
+        else:
+            st.warning("Could not understand audio. Please try again.")
+    else:
+        st.error("Please enter your OpenAI API Key or use the default API Key.")
+
 if st.session_state['generated']:
     for i in range(len(st.session_state['generated'])-1, -1, -1):
         message(st.session_state["generated"][i], key=str(i))
         message(st.session_state['past'][i], is_user=True, key=str(i) + '_user')
-
-# Sidebar footer
-st.sidebar.markdown("***")
-st.sidebar.text("Created by Bushra Akram")
