@@ -1,8 +1,8 @@
-streamlit
-streamlit_chat
+streamlit==1.35.0
+streamlit-chat==0.1.1
 langchain
 pyttsx3
-SpeechRecognition
 openai
 python-dotenv
-PyAudio
+speechrecognition==3.10.0
+pyaudio==0.2.13
