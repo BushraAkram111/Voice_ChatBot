@@ -1,7 +1,7 @@
 attr==0.3.2
 ConfigParser==7.0.0
 contextlib2==21.6.0
-cryptography==41.0.7
+cryptography
 cryptography.egg==info
 docutils==0.21.2
 filelock==3.15.4
