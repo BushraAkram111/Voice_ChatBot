@@ -1,8 +1,8 @@
 streamlit==1.36.0
-requests==2.31.0
-transformers==4.30.0
-langchain-google-genai==0.1.0
-langchain-core==0.1.0
-streamlit-mic-recorder==0.0.1
-streamlit-TTS==0.0.1
-gtts==2.2.3
+requests
+transformers
+langchain-google-genai
+langchain-core
+streamlit-mic-recorder
+streamlit-TTS
+gtts
