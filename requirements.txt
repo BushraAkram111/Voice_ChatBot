@@ -1,10 +1,4 @@
-attr==0.3.2
-ConfigParser==7.0.0
-contextlib2==21.6.0
-cryptography
-cryptography.egg==info
-docutils
-filelock
+
 gTTS
 HTMLParser==0.0.2
 importlib_metadata==6.11.0
