@@ -3,9 +3,9 @@ ConfigParser==7.0.0
 contextlib2==21.6.0
 cryptography
 cryptography.egg==info
-docutils==0.21.2
-filelock==3.15.4
-gTTS==2.5.2
+docutils
+filelock
+gTTS
 HTMLParser==0.0.2
 importlib_metadata==6.11.0
 ipython==8.12.3
