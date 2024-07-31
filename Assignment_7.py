@@ -22,7 +22,7 @@ st.subheader("Interact in Urdu with Real-Time Voice Input")
 st.image("https://www.purespeechtechnology.com/wp-content/uploads/2020/04/voice-assistant-enterprise-conversational-ai.jpg", use_column_width=True)
 
 
-api_key = "..."
+api_key = "AIzaSyBTfA6_lri8MtjYKccTMZ8umT_uvXa6hHU"
 
 prompt = ChatPromptTemplate(
     messages=[
